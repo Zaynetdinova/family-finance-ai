@@ -1,5 +1,5 @@
 -- RLS and constraint tests. Run against a database that has the stub + all migrations applied:
---   psql -v ON_ERROR_STOP=1 -d fin -f supabase/tests/10_rls_and_constraints.sql
+--   psql -v ON_ERROR_STOP=1 -d fin -f supabase/local-tests/10_rls_and_constraints.sql
 -- Everything runs inside a transaction that is rolled back. Any failed assertion raises an exception.
 begin;
 
@@ -41,11 +41,9 @@ insert into auth.users (id, email) values
   ('b0000000-0000-0000-0000-000000000002', 'bob@test'),
   ('c0000000-0000-0000-0000-000000000003', 'carol@test'),
   ('d0000000-0000-0000-0000-000000000004', 'dave@test');
-insert into profiles (id, display_name) values
-  ('a0000000-0000-0000-0000-000000000001', 'Alice'),
-  ('b0000000-0000-0000-0000-000000000002', 'Bob'),
-  ('c0000000-0000-0000-0000-000000000003', 'Carol'),
-  ('d0000000-0000-0000-0000-000000000004', 'Dave');
+select t.eq('signup trigger created profiles', (select count(*) from profiles), 4);
+select t.eq('signup trigger created notification prefs', (select count(*) from notification_preferences), 4);
+update profiles set display_name = initcap(split_part(display_name, '@', 1));
 insert into households (id, name, created_by) values
   ('11111111-1111-1111-1111-111111111111', 'Alice family', 'a0000000-0000-0000-0000-000000000001'),
   ('22222222-2222-2222-2222-222222222222', 'Carol solo',   'c0000000-0000-0000-0000-000000000003');

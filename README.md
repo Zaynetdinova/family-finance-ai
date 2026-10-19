@@ -31,15 +31,15 @@
 cd apps/web && npm install && npm run typecheck && npm run lint && npm test
 
 # SQL-миграции, RLS и ограничения (нужен PostgreSQL 15+ и право создавать БД)
-PSQL_ARGS="-h localhost -U postgres" supabase/tests/run.sh
+PSQL_ARGS="-h localhost -U postgres" supabase/local-tests/run.sh
 ```
 
-`supabase/tests/00_supabase_stub.sql` имитирует объекты Supabase (`auth.users`, `auth.uid()`, роли) только для локального теста на обычном PostgreSQL; на настоящем Supabase он не применяется.
+`supabase/local-tests/00_supabase_stub.sql` имитирует объекты Supabase (`auth.users`, `auth.uid()`, роли) только для локального теста на обычном PostgreSQL; на настоящем Supabase он не применяется.
 
 ## Миграции на Supabase
 
-Применить по порядку файлы из `supabase/migrations` (SQL Editor или `supabase db push`): `0001_schema.sql`, `0002_rls.sql`, `0003_seed_categories.sql`.
+Применить по порядку файлы из `supabase/migrations` (SQL Editor или `supabase db push`): `0001_schema.sql` … `0004_auth_profile_trigger.sql`.
 
 Привилегированные операции (запись курсов, журнал AI, Telegram-привязка, идемпотентность webhook) выполняются только ключом `service_role` на сервере.
 
-Правила учёта: `docs/ACCOUNTING.md`. План: `docs/PLAN.md`.
+Подключение Supabase: `docs/SUPABASE_SETUP.md`. Правила учёта: `docs/ACCOUNTING.md`. План: `docs/PLAN.md`.
