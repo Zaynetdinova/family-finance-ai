@@ -12,3 +12,5 @@ test-results/
 *.log
 .vercel/
 supabase/.temp/
+next-env.d.ts
+*.tsbuildinfo
