@@ -8,7 +8,7 @@
 npm i -g supabase            # или: npx supabase <команда>
 supabase login               # откроет браузер
 supabase link --project-ref ateuomwqiswhpqpadjza   # спросит пароль БД
-supabase db push             # применит supabase/migrations/0001…0004
+supabase db push             # применит supabase/migrations/0001…0005
 ```
 
 Пароль БД (Project Settings → Database) вводится только в терминале. Не вставляйте его в чат, в коммиты и в `.env.example`.
@@ -16,11 +16,14 @@ supabase db push             # применит supabase/migrations/0001…0004
 
 Файлы из `supabase/local-tests/` на Supabase **не применяются**: это заглушка и тесты для локального PostgreSQL.
 
+После добавления новых миграций повторите `supabase db push` (миграция `0005_household_invites.sql` нужна для приглашений в семейный бюджет).
+
 ## 2. Ключи
 
 В `apps/web/.env.local` (в git не попадает):
 
 - `NEXT_PUBLIC_SUPABASE_URL` и `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — публичные, можно использовать в браузере.
+- `CRON_SECRET` — любой случайный секрет ≥ 16 символов для вызова `/api/fx/refresh` планировщиком.
 - `SUPABASE_SECRET_KEY` (Project Settings → API Keys → Secret key) нужен только серверным обработчикам (Telegram webhook, n8n, импорт курсов). Он обходит RLS: никогда не передавать в клиентский код.
 
 ## 3. Настройки Auth

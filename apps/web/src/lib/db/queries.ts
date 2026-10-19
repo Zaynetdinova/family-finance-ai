@@ -1,5 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { todayIn } from '@/lib/finance/period';
@@ -18,6 +19,7 @@ export interface AppContext {
   household: HouseholdRow;
   role: MemberRow['role'];
   members: { userId: string; name: string; role: MemberRow['role'] }[];
+  households: { id: string; name: string }[];
   accounts: AccountRow[];
   categories: CategoryRow[];
   debts: DebtRow[];
@@ -25,6 +27,7 @@ export interface AppContext {
 }
 
 const PAGE = 1000;
+export const ACTIVE_HOUSEHOLD_COOKIE = 'hid';
 
 /** Reads every row of a query; PostgREST caps a single response at 1000 rows. */
 export async function fetchAll<T>(
@@ -66,19 +69,22 @@ export const getAppContext = cache(async (opts: { allowNoHousehold?: boolean } =
     'memberships',
   ) as { household_id: string; role: MemberRow['role'] }[];
 
-  const first = memberships[0];
+  // Active household: the one chosen via cookie if the user is still a member, else the oldest membership.
+  const wanted = (await cookies()).get(ACTIVE_HOUSEHOLD_COOKIE)?.value;
+  const first = memberships.find((m) => m.household_id === wanted) ?? memberships[0];
   if (!first) {
     if (opts.allowNoHousehold) return null;
     redirect('/onboarding');
   }
 
   const hid = first.household_id;
-  const [household, members, accounts, categories, debts] = await Promise.all([
+  const [household, members, accounts, categories, debts, allHouseholds] = await Promise.all([
     supabase.from('households').select('*').eq('id', hid).single(),
     supabase.from('household_members').select('user_id, role, profiles(display_name)').eq('household_id', hid),
     supabase.from('accounts').select('*').eq('household_id', hid).order('created_at'),
     supabase.from('categories').select('*').or(`household_id.is.null,household_id.eq.${hid}`).order('name'),
     supabase.from('debts').select('*').eq('household_id', hid).order('created_at'),
+    supabase.from('households').select('id, name').in('id', memberships.map((m) => m.household_id)),
   ]);
 
   return {
@@ -93,6 +99,7 @@ export const getAppContext = cache(async (opts: { allowNoHousehold?: boolean } =
       name: m.profiles?.display_name || 'Участник',
       role: m.role,
     })),
+    households: must(allHouseholds, 'households') as { id: string; name: string }[],
     accounts: must(accounts, 'accounts') as AccountRow[],
     categories: must(categories, 'categories') as CategoryRow[],
     debts: must(debts, 'debts') as DebtRow[],

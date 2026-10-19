@@ -38,6 +38,15 @@ describe('fx', () => {
     expect(pickRate(more, 'USD', 'RUB', '2026-10-16')!.rate).toBe(parseRate('90'));
   });
 
+  it('prefers a manual rate over an imported one on the same date', () => {
+    const rows = [
+      { base: 'USD' as const, quote: 'ARS' as const, rate: parseRate('1000'), date: '2026-10-15', source: 'open.er-api.com' },
+      { base: 'USD' as const, quote: 'ARS' as const, rate: parseRate('1450'), date: '2026-10-15', source: 'manual' },
+    ];
+    expect(pickRate(rows, 'USD', 'ARS', '2026-10-16')!.rate).toBe(parseRate('1450'));
+    expect(pickRate([...rows].reverse(), 'USD', 'ARS', '2026-10-16')!.rate).toBe(parseRate('1450'));
+  });
+
   it('identity for the same currency', () => {
     expect(snapshotFx(rub('5'), 'RUB', 'RUB', [], '2026-10-18')).toMatchObject({ baseAmount: rub('5') });
   });

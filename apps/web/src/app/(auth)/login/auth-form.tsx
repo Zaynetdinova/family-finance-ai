@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/input';
 import { signIn, signUp } from '@/lib/actions/auth';
 
-export function AuthForm() {
+export function AuthForm({ next }: { next: string }) {
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [state, action, pending] = useActionState(mode === 'in' ? signIn : signUp, null);
   const errors = state && !state.ok ? state.fieldErrors : undefined;
 
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
+      <input type="hidden" name="next" value={next} />
       <Field label="Email" error={errors?.email}>
         <Input name="email" type="email" autoComplete="email" required />
       </Field>

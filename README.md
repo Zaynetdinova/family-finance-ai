@@ -17,7 +17,7 @@
 |---|---|
 | 1. Аудит и архитектура | готов (репозиторий был пуст) |
 | 2. Финансовое ядро | готов: схема БД, RLS, расчёты, тесты |
-| 3. Веб-приложение | не начат |
+| 3. Веб-приложение | готово к проверке на реальном Supabase: Next.js, вход, обзор, операции, аналитика, долги, бюджеты и цели, настройки |
 | 4. AI и Telegram | не начат (готовы схема ответа модели и нормализация) |
 | 5. Долги и прогнозы | не начат (поля и триггеры в БД есть, стратегии погашения не реализованы) |
 | 6. n8n и документация | не начат |
@@ -27,8 +27,8 @@
 ## Проверка
 
 ```bash
-# TypeScript-ядро
-cd apps/web && npm install && npm run typecheck && npm run lint && npm test
+# TypeScript-ядро и веб-приложение
+cd apps/web && npm install && npm run typecheck && npm run lint && npm test && npm run build
 
 # SQL-миграции, RLS и ограничения (нужен PostgreSQL 15+ и право создавать БД)
 PSQL_ARGS="-h localhost -U postgres" supabase/local-tests/run.sh
@@ -38,8 +38,8 @@ PSQL_ARGS="-h localhost -U postgres" supabase/local-tests/run.sh
 
 ## Миграции на Supabase
 
-Применить по порядку файлы из `supabase/migrations` (SQL Editor или `supabase db push`): `0001_schema.sql` … `0004_auth_profile_trigger.sql`.
+Применить по порядку файлы из `supabase/migrations` (SQL Editor или `supabase db push`): `0001_schema.sql` … `0005_household_invites.sql`.
 
 Привилегированные операции (запись курсов, журнал AI, Telegram-привязка, идемпотентность webhook) выполняются только ключом `service_role` на сервере.
 
-Подключение Supabase: `docs/SUPABASE_SETUP.md`. Правила учёта: `docs/ACCOUNTING.md`. План: `docs/PLAN.md`.
+Подключение Supabase: `docs/SUPABASE_SETUP.md`. Запуск веб-приложения: `docs/WEB.md`. Правила учёта: `docs/ACCOUNTING.md`. План: `docs/PLAN.md`.

@@ -29,7 +29,7 @@ export async function proxy(request: NextRequest) {
   if (!signedIn && !isPublic) {
     const to = request.nextUrl.clone();
     to.pathname = '/login';
-    to.search = '';
+    to.search = pathname === '/' ? '' : `?next=${encodeURIComponent(pathname + request.nextUrl.search)}`;
     return NextResponse.redirect(to);
   }
   if (signedIn && pathname === '/login') {

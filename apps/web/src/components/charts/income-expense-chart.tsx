@@ -43,7 +43,7 @@ export function IncomeExpenseChart({ data, currency, height = 260 }: { data: Inc
             <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }} barGap={2}>
               <CartesianGrid stroke="var(--grid)" vertical={false} />
               <XAxis dataKey="label" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickLine={false} axisLine={{ stroke: 'var(--grid)' }} interval="preserveStartEnd" minTickGap={12} />
-              <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={44} tickFormatter={compact} />
+              <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickLine={false} axisLine={false} width={60} tickFormatter={compact} />
               <Tooltip
                 cursor={{ fill: 'var(--surface-muted)' }}
                 content={({ active, payload, label }) =>
@@ -60,7 +60,7 @@ export function IncomeExpenseChart({ data, currency, height = 260 }: { data: Inc
                   ) : null
                 }
               />
-              <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-secondary)' }} iconType="square" />
+              <Legend wrapperStyle={{ fontSize: 12 }} iconType="square" formatter={(v: string) => <span style={{ color: 'var(--text-secondary)' }}>{v}</span>} />
               <Bar dataKey="income" name="Доходы" fill="var(--series-1)" radius={[4, 4, 0, 0]} maxBarSize={22} />
               <Bar dataKey="expense" name="Расходы" fill="var(--series-2)" radius={[4, 4, 0, 0]} maxBarSize={22} />
             </BarChart>

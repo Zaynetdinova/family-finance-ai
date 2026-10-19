@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { safeNext } from '@/lib/safe-next';
 import { fieldErrors, formObject, type ActionResult } from './result';
 
 const credentials = z.object({
@@ -16,7 +17,7 @@ export async function signIn(_prev: ActionResult | null, fd: FormData): Promise<
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { ok: false, error: 'Неверный email или пароль, либо почта не подтверждена.' };
-  redirect('/');
+  redirect(safeNext(String(fd.get('next') ?? '')));
 }
 
 export async function signUp(_prev: ActionResult | null, fd: FormData): Promise<ActionResult> {

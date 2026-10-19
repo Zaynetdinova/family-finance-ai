@@ -27,7 +27,8 @@ function latest(rows: RateRow[], base: Currency, quote: Currency, on: IsoDate, m
     if (r.base !== base || r.quote !== quote) continue;
     if (r.date > on) continue; // never use a rate from the future
     if (diffDays(r.date, on) > maxAge) continue;
-    if (!best || r.date > best.date) best = r;
+    // A manually entered rate wins over an imported one for the same day.
+    if (!best || r.date > best.date || (r.date === best.date && r.source === 'manual' && best.source !== 'manual')) best = r;
   }
   return best;
 }

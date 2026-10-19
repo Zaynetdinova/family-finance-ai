@@ -11,7 +11,7 @@ import { CategoryBars } from '@/components/charts/category-bars';
 import { IncomeExpenseChart } from '@/components/charts/income-expense-chart';
 import { TransactionFormDialog } from '@/components/transactions/transaction-form';
 import { requireContext, loadRecentRates } from '@/lib/db/queries';
-import { accountRef, debtSchedule, rateRow, toMinor } from '@/lib/db/convert';
+import { debtSchedule, rateRow, toMinor } from '@/lib/db/convert';
 import { loadBalances, loadBudget, loadDebtPayments, loadReport, one, type SearchParams } from '@/lib/report';
 import { balancesByCurrency } from '@/lib/finance/ledger';
 import { defaultBucket, timeSeries } from '@/lib/finance/series';

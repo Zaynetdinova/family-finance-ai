@@ -11,7 +11,7 @@ export function toCsv(header: string[], rows: string[][]): string {
 
 /** Parses CSV with quoted cells; the delimiter (, or ;) is detected from the header line. */
 export function parseCsv(text: string): string[][] {
-  const src = text.replace(/^﻿/, '');
+  const src = text.replace(/^\uFEFF/, '');
   const firstLine = src.split(/\r?\n/, 1)[0] ?? '';
   const delim = (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0) ? ';' : ',';
   const rows: string[][] = [];

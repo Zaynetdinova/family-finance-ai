@@ -7,7 +7,7 @@ export function pct(bp: number | null, opts: { signed?: boolean } = {}): string 
   if (bp === null) return '—';
   const v = (bp / 100).toFixed(1).replace('.', ',');
   const sign = opts.signed && bp > 0 ? '+' : bp < 0 ? '−' : '';
-  return `${sign}${v.replace('-', '')} %`;
+  return `${sign}${v.replace('-', '')}\u00a0%`;
 }
 
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];

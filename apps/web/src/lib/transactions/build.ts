@@ -72,9 +72,9 @@ export function buildTransaction(input: TransactionInput, env: BuildEnv): BuildR
 
   // FX snapshot
   const warnings: string[] = [];
-  let fx: FxSnapshot | null = null;
   const unchanged =
     env.existing && env.existing.amount === amount && env.existing.currency === account.currency && env.existing.occurredOn === input.occurredOn;
+  let fx: FxSnapshot | null;
   if (unchanged && env.existing!.fx) fx = env.existing!.fx;
   else {
     fx = snapshotFx(amount, account.currency, env.baseCurrency, env.rates, input.occurredOn);

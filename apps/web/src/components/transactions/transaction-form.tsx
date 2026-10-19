@@ -34,26 +34,31 @@ interface Props {
   categories: FormCategory[];
   debts: FormDebt[];
   initial?: TransactionInitial;
+  /** Pre-fill a new operation, e.g. a payment on a given debt. */
+  preset?: { type?: string; debtId?: string };
   today?: string;
 }
 
-export function TransactionFormDialog({ trigger, accounts, categories, debts, initial, today }: Props) {
+export function TransactionFormDialog({ trigger, accounts, categories, debts, initial, preset, today }: Props) {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent title={initial ? 'Редактировать операцию' : 'Новая операция'} description="Валюта берётся из выбранного счёта. Курс фиксируется при сохранении.">
-        <TransactionForm {...{ accounts, categories, debts, initial, today }} onDone={() => setOpen(false)} />
+        <TransactionForm {...{ accounts, categories, debts, initial, preset, today }} onDone={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   );
 }
 
-function TransactionForm({ accounts, categories, debts, initial, today, onDone }: Omit<Props, 'trigger'> & { onDone: () => void }) {
+function TransactionForm({ accounts, categories, debts, initial, preset, today, onDone }: Omit<Props, 'trigger'> & { onDone: () => void }) {
   const boundAction = saveTransaction.bind(null, initial?.id ?? null);
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(boundAction, null);
-  const [type, setType] = useState(initial?.type ?? 'expense');
-  const [accountId, setAccountId] = useState(initial?.accountId ?? accounts[0]?.id ?? '');
+  const presetDebt = debts.find((d) => d.id === preset?.debtId);
+  const [type, setType] = useState(initial?.type ?? preset?.type ?? 'expense');
+  const [accountId, setAccountId] = useState(
+    initial?.accountId ?? accounts.find((a) => a.currency === presetDebt?.currency)?.id ?? accounts[0]?.id ?? '',
+  );
   const [toId, setToId] = useState(initial?.transferAccountId ?? '');
   const errors = state && !state.ok ? state.fieldErrors : undefined;
 
@@ -118,7 +123,7 @@ function TransactionForm({ accounts, categories, debts, initial, today, onDone }
       {type === 'debt_payment' ? (
         <>
           <Field label="Долг" error={errors?.debtId}>
-            <Select name="debtId" defaultValue={initial?.debtId ?? ''} required>
+            <Select name="debtId" defaultValue={initial?.debtId ?? preset?.debtId ?? ''} required>
               <option value="">Выберите…</option>
               {debts.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.currency})</option>)}
             </Select>
