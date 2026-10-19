@@ -1,6 +1,6 @@
 import 'server-only';
 import type { AppContext } from '@/lib/db/queries';
-import { debtSchedule, rateRow, toMinor, txFromRow } from '@/lib/db/convert';
+import { debtSchedule, rateRow, txFromRow } from '@/lib/db/convert';
 import { loadRecentRates, loadTransactions } from '@/lib/db/queries';
 import { categoryNamer, debtDirections, loadBalances, loadDebtPayments } from '@/lib/report';
 import { addDays, daysInRange, isIsoDate, previousComparableRange, startOfMonth, type DateRange } from '@/lib/finance/dates';
@@ -14,6 +14,8 @@ import { bpToPercent, CURRENCIES, formatMinor } from '@/lib/finance/money';
 import { esc, dateRu } from '@/lib/telegram/format';
 import type { MessageAnalysis } from '@/lib/ai/schemas';
 import { questionRange } from './question-range';
+import { averageFreeCashflow, liquidBalance, planDebts } from '@/lib/debts/plan-load';
+import { compareScenarios, safeExtraPayment } from '@/lib/finance/payoff-plan';
 
 const pct = (bp: number | null, signed = false) => (bp === null ? '—' : `${signed && bp > 0 ? '+' : ''}${(bpToPercent(bp) ?? 0).toFixed(1).replace('.', ',')}%`);
 const label = (r: DateRange) => (r.from === r.to ? dateRu(r.from) : `${dateRu(r.from)} — ${dateRu(r.to)}`);
@@ -88,18 +90,32 @@ export async function answerQuestion(ctx: AppContext, q: MessageAnalysis): Promi
     }
 
     case 'debt_strategy': {
-      const owed = ctx.debts.filter((d) => d.status === 'active' && d.direction === 'owed_by_me');
-      if (!owed.length) return 'Активных долгов нет.';
-      const byRate = [...owed].sort((x, y) => Number(y.interest_rate ?? -1) - Number(x.interest_rate ?? -1));
-      const byBalance = [...owed].sort((x, y) => (toMinor(x.current_balance) < toMinor(y.current_balance) ? -1 : 1));
-      const line = (d: (typeof owed)[number]) => `${esc(d.name)} — ${esc(formatMinor(toMinor(d.current_balance), d.currency))}${d.interest_rate !== null ? `, ${d.interest_rate}%` : ', ставка не указана'}`;
-      return [
-        '<b>Порядок погашения</b>',
-        'Сначала всегда вносите минимальные платежи по всем долгам и сохраняйте резерв.',
-        `Лавина (меньше переплата): лишние деньги — на долг с самой высокой ставкой:\n${byRate.map((d, k) => `${k + 1}. ${line(d)}`).join('\n')}`,
-        `Снежный ком (быстрее закрываются долги): сначала самый маленький остаток:\n${byBalance.map((d, k) => `${k + 1}. ${line(d)}`).join('\n')}`,
-        owed.some((d) => d.interest_rate === null) ? 'У части долгов не указана ставка — порядок по «лавине» приблизительный.' : '',
-      ].filter(Boolean).join('\n\n');
+      const currencies = CURRENCIES.filter((c) => ctx.debts.some((d) => d.status === 'active' && d.direction === 'owed_by_me' && d.currency === c));
+      if (!currencies.length) return 'Активных долгов нет.';
+      const blocks: string[] = ['<b>Как быстрее закрыть долги</b>', 'Минимальные платежи вносятся по всем долгам всегда; дополнительные деньги — по стратегии.'];
+      for (const cur of currencies) {
+        const mm = (v: bigint) => esc(formatMinor(v, cur));
+        const [cash, liquid] = await Promise.all([averageFreeCashflow(ctx, cur), liquidBalance(ctx, cur)]);
+        const safe = safeExtraPayment({ avgFreeCashflow: cash.value, liquidBalance: liquid, reserve: 0n, requested: 0n });
+        const extra = safe.suggested ?? 0n;
+        const debtsCur = planDebts(ctx, cur);
+        const c = compareScenarios(debtsCur, { extraMonthly: extra, startDate: ctx.today, strategy: 'avalanche' });
+        const names = new Map(debtsCur.map((d) => [d.id, d.name]));
+        const line = (label: string, p: typeof c.avalanche) =>
+          `${label}: ${p.complete ? `${p.totals.months} мес., проценты ≈ ${mm(p.totals.interestTotal)}` : 'не погашается — платежей не хватает на проценты'}`;
+        blocks.push(
+          `<b>${cur}</b>${extra > 0n ? ` — при ${mm(extra)} в месяц сверх минимальных (средний свободный остаток за ${cash.months} мес.)` : ' — без дополнительных платежей'}`,
+          line('Только минимальные', c.minimum),
+          line('Лавина (сначала высокая ставка)', c.avalanche) + `. Порядок: ${c.avalanche.order.map((id) => esc(names.get(id) ?? '')).join(' → ')}`,
+          line('Снежный ком (сначала маленький долг)', c.snowball) + `. Порядок: ${c.snowball.order.map((id) => esc(names.get(id) ?? '')).join(' → ')}`,
+          ...safe.warnings.map((w) => `⚠️ ${esc(w)}`),
+        );
+        if (c.avalanche.complete && c.snowball.complete && c.snowball.totals.interestTotal > c.avalanche.totals.interestTotal) {
+          blocks.push(`Лавина дешевле на ${mm(c.snowball.totals.interestTotal - c.avalanche.totals.interestTotal)}; снежный ком быстрее закрывает отдельные долги.`);
+        }
+      }
+      blocks.push('Расчёт приблизительный (проценты помесячно, по текущим ставкам). Подробный план с графиком — в веб-приложении: Долги → План погашения. Сохраняйте резерв на непредвиденные расходы.');
+      return blocks.join('\n');
     }
 
     case 'savings_capacity': {

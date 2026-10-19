@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Plus, Wallet } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,7 +70,10 @@ export default async function DebtsPage() {
           <h1 className="text-xl font-semibold tracking-tight">Долги</h1>
           <p className="text-sm text-text-secondary">Кредиты, ипотека и личные обязательства</p>
         </div>
-        {canWrite ? <DebtFormDialog trigger={addButton} /> : null}
+        <div className="flex flex-wrap gap-2">
+          {active.some((d) => d.direction === 'owed_by_me') ? <Button variant="outline" asChild><Link href="/debts/plan">План погашения</Link></Button> : null}
+          {canWrite ? <DebtFormDialog trigger={addButton} /> : null}
+        </div>
       </div>
 
       {ctx.debts.length === 0 ? (
