@@ -220,4 +220,18 @@ select t.fails('cannot point at another household''s account',
 select t.as_user('a0000000-0000-0000-0000-000000000001');
 select t.eq('others'' defaults are not visible', (select count(*) from default_accounts), 0);
 
+-- ── notifications ──
+select t.as_server();
+insert into notifications_sent (user_id, kind, dedupe_key) values ('a0000000-0000-0000-0000-000000000001', 'weekly', 'weekly:2026-W42');
+select t.fails('same notification cannot be claimed twice',
+  $$insert into notifications_sent (user_id, kind, dedupe_key) values ('a0000000-0000-0000-0000-000000000001', 'weekly', 'weekly:2026-W42')$$,
+  'duplicate key');
+select t.as_user('a0000000-0000-0000-0000-000000000001');
+select t.eq('user sees own notifications', (select count(*) from notifications_sent), 1);
+select t.fails('client cannot write notifications',
+  $$insert into notifications_sent (user_id, kind, dedupe_key) values ('a0000000-0000-0000-0000-000000000001', 'daily', 'x')$$,
+  'row-level security');
+select t.as_user('c0000000-0000-0000-0000-000000000003');
+select t.eq('others'' notifications are hidden', (select count(*) from notifications_sent), 0);
+
 rollback;

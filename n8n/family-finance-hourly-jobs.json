@@ -1,0 +1,57 @@
+{
+  "name": "Family Finance — hourly jobs (summaries, reminders, budget alerts)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 1, "triggerAtMinute": 5 }] }
+      },
+      "id": "6b0b5b1e-1a1a-4c1e-9a01-000000000001",
+      "name": "Every hour at :05",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "c0f1e2d3-0000-4000-8000-000000000001", "name": "app_url", "value": "https://YOUR-APP.vercel.app", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6b0b5b1e-1a1a-4c1e-9a01-000000000002",
+      "name": "Config (edit app_url)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.app_url }}/api/jobs/tick",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": { "timeout": 60000 }
+      },
+      "id": "6b0b5b1e-1a1a-4c1e-9a01-000000000003",
+      "name": "POST /api/jobs/tick",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_AFTER_IMPORT", "name": "Family Finance CRON_SECRET" }
+      }
+    }
+  ],
+  "connections": {
+    "Every hour at :05": { "main": [[{ "node": "Config (edit app_url)", "type": "main", "index": 0 }]] },
+    "Config (edit app_url)": { "main": [[{ "node": "POST /api/jobs/tick", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "saveDataErrorExecution": "all", "saveDataSuccessExecution": "none", "timezone": "UTC" },
+  "pinData": {},
+  "active": false
+}

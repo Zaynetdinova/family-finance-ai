@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/login', '/auth/callback', '/api/fx/refresh', '/api/telegram/webhook'];
+const PUBLIC_PATHS = ['/login', '/auth/callback', '/api/fx/refresh', '/api/telegram/webhook', '/api/jobs/tick'];
 
 /** Refreshes the Supabase session cookie and sends signed-out visitors to /login. */
 export async function proxy(request: NextRequest) {

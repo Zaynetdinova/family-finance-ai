@@ -109,3 +109,15 @@ export function addMonthsKeepDay(s: IsoDate, n: number): IsoDate {
   const last = Number(endOfMonth(target).slice(8));
   return `${target.slice(0, 8)}${String(Math.min(Number(s.slice(8)), last)).padStart(2, '0')}`;
 }
+
+/** ISO-8601 week label, e.g. '2026-W42' (weeks start on Monday; week 1 contains the first Thursday). */
+export function isoWeekKey(s: IsoDate): string {
+  const d = parse(s);
+  const dow = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dow + 3); // Thursday of this week
+  const year = d.getUTCFullYear();
+  const firstThursday = new Date(Date.UTC(year, 0, 4));
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - ((firstThursday.getUTCDay() + 6) % 7) + 3);
+  const week = 1 + Math.round((d.getTime() - firstThursday.getTime()) / (7 * 86_400_000));
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}

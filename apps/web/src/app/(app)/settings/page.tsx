@@ -5,6 +5,8 @@ import { Input, Select } from '@/components/ui/input';
 import { Notice } from '@/components/ui/states';
 import { ActionForm, FormField } from '@/components/action-form';
 import { TelegramLink } from '@/components/telegram-link';
+import { NotificationSettings } from '@/components/notification-settings';
+import { DEFAULT_PREFS, mergeSchedules } from '@/lib/jobs/schedule';
 import { ArchiveButton, DefaultAccountSelect, HouseholdSwitcher, InviteForm, RefreshRatesButton, RemoveMemberButton } from '@/components/settings-controls';
 import { addManualRate, createAccount, createCategory, updateHouseholdSettings } from '@/lib/actions/settings';
 import { loadRecentRates, requireContext } from '@/lib/db/queries';
@@ -25,6 +27,24 @@ export default async function SettingsPage() {
   const defaultsRes = await ctx.supabase.from('default_accounts').select('currency, account_id').eq('user_id', ctx.userId).eq('household_id', ctx.household.id);
   const defaults = new Map(((defaultsRes.data ?? []) as { currency: string; account_id: string }[]).map((d) => [d.currency, d.account_id]));
   const liveAccounts = ctx.accounts.filter((a) => !a.is_archived);
+  const [schedRes, prefsRes] = await Promise.all([
+    ctx.supabase.from('scheduled_reports').select('kind, enabled, send_hour, send_weekday').eq('user_id', ctx.userId).eq('household_id', ctx.household.id),
+    ctx.supabase.from('notification_preferences').select('*').eq('user_id', ctx.userId).maybeSingle(),
+  ]);
+  const sched = mergeSchedules((schedRes.data ?? []) as { kind: string; enabled: boolean; send_hour: number; send_weekday: number | null }[]);
+  const pr = prefsRes.data as { payment_reminders: boolean; reminder_days_before: number; budget_alerts: boolean; budget_alert_pct: number } | null;
+  const find = (k: string) => sched.find((x) => x.kind === k)!;
+  const notif = {
+    timezone: ctx.profile.timezone,
+    daily: { enabled: find('daily').enabled, hour: find('daily').sendHour },
+    weekly: { enabled: find('weekly').enabled, hour: find('weekly').sendHour, day: find('weekly').sendWeekday ?? 7 },
+    monthly: { enabled: find('monthly').enabled, hour: find('monthly').sendHour },
+    paymentReminders: pr?.payment_reminders ?? DEFAULT_PREFS.paymentReminders,
+    reminderDaysBefore: pr?.reminder_days_before ?? DEFAULT_PREFS.reminderDaysBefore,
+    budgetAlerts: pr?.budget_alerts ?? DEFAULT_PREFS.budgetAlerts,
+    budgetAlertPct: pr?.budget_alert_pct ?? DEFAULT_PREFS.budgetAlertPct,
+  };
+  const timezones = [...new Set([ctx.profile.timezone, 'Europe/Moscow', 'America/Argentina/Buenos_Aires', 'UTC', ...Intl.supportedValuesOf('timeZone')])];
   const accountCurrencies = [...new Set(liveAccounts.map((a) => a.currency))];
 
   return (
@@ -65,6 +85,11 @@ export default async function SettingsPage() {
             </div>
           ) : null}
         </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Уведомления</CardTitle></CardHeader>
+        <CardContent><NotificationSettings values={notif} timezones={timezones} telegramLinked={ctx.profile.telegram_user_id !== null} /></CardContent>
       </Card>
 
       <Card>

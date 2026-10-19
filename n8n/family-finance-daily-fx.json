@@ -1,0 +1,57 @@
+{
+  "name": "Family Finance — daily exchange rates",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "days", "daysInterval": 1, "triggerAtHour": 6, "triggerAtMinute": 15 }] }
+      },
+      "id": "7c1c6c2f-2b2b-4d2f-8b02-000000000001",
+      "name": "Every day 06:15 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "d1e2f3a4-0000-4000-8000-000000000001", "name": "app_url", "value": "https://YOUR-APP.vercel.app", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7c1c6c2f-2b2b-4d2f-8b02-000000000002",
+      "name": "Config (edit app_url)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.app_url }}/api/fx/refresh",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": { "timeout": 30000 }
+      },
+      "id": "7c1c6c2f-2b2b-4d2f-8b02-000000000003",
+      "name": "POST /api/fx/refresh",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 60000,
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_AFTER_IMPORT", "name": "Family Finance CRON_SECRET" }
+      }
+    }
+  ],
+  "connections": {
+    "Every day 06:15 UTC": { "main": [[{ "node": "Config (edit app_url)", "type": "main", "index": 0 }]] },
+    "Config (edit app_url)": { "main": [[{ "node": "POST /api/fx/refresh", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "saveDataErrorExecution": "all", "saveDataSuccessExecution": "none", "timezone": "UTC" },
+  "pinData": {},
+  "active": false
+}
