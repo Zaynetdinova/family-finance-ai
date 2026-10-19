@@ -77,24 +77,35 @@ export function weekRange(s: IsoDate): DateRange {
 
 /**
  * The range a period should be compared with.
- * - Whole calendar month → previous calendar month (full).
- * - Month in progress (asOf inside it) → the same number of elapsed days of the previous
- *   month, so that "8 days of October" is never compared with all of September.
- * - Any other range → the immediately preceding range of equal length.
- * `truncated` is true when the previous month is shorter than the span asked for.
+ * - Whole calendar month → previous calendar month; any other range → the immediately
+ *   preceding range of equal length.
+ * - If the period is still in progress (asOf falls inside it, before its last day), only the
+ *   same number of elapsed days of the previous period are used, so "8 days of October" is
+ *   never compared with all of September.
+ * `truncated` is true when the previous period is shorter than the elapsed span asked for.
  */
 export function previousComparableRange(range: DateRange, asOf: IsoDate): DateRange & { truncated: boolean } {
   const isWholeMonth = range.from === startOfMonth(range.from) && range.to === endOfMonth(range.from);
+  let prevStart: IsoDate;
+  let prevEnd: IsoDate;
   if (isWholeMonth) {
-    const prevStart = addMonths(range.from, -1);
-    const prevEnd = endOfMonth(prevStart);
-    const elapsed = asOf >= range.from && asOf < range.to ? daysInRange(range.from, asOf) : null;
-    if (elapsed !== null) {
-      const to = addDays(prevStart, elapsed - 1);
-      return to > prevEnd ? { from: prevStart, to: prevEnd, truncated: true } : { from: prevStart, to, truncated: false };
-    }
-    return { from: prevStart, to: prevEnd, truncated: false };
+    prevStart = addMonths(range.from, -1);
+    prevEnd = endOfMonth(prevStart);
+  } else {
+    const len = daysInRange(range.from, range.to);
+    prevStart = addDays(range.from, -len);
+    prevEnd = addDays(range.from, -1);
   }
-  const len = daysInRange(range.from, range.to);
-  return { from: addDays(range.from, -len), to: addDays(range.from, -1), truncated: false };
+  if (asOf >= range.from && asOf < range.to) {
+    const to = addDays(prevStart, daysInRange(range.from, asOf) - 1);
+    return to > prevEnd ? { from: prevStart, to: prevEnd, truncated: true } : { from: prevStart, to, truncated: false };
+  }
+  return { from: prevStart, to: prevEnd, truncated: false };
+}
+
+/** Same day-of-month n months later; clamps to the last day of shorter months (Jan 31 + 1 → Feb 28/29). */
+export function addMonthsKeepDay(s: IsoDate, n: number): IsoDate {
+  const target = addMonths(s, n);
+  const last = Number(endOfMonth(target).slice(8));
+  return `${target.slice(0, 8)}${String(Math.min(Number(s.slice(8)), last)).padStart(2, '0')}`;
 }

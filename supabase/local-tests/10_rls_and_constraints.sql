@@ -177,4 +177,30 @@ update transactions set status = 'cancelled' where id = 'e1000000-0000-0000-0000
 select t.eq('cancelling payment restores balance', (select current_balance::bigint from debts where id = 'de000000-0000-0000-0000-000000000001'), 100000);
 select t.eq('cancelling payment removes debt_payments row', (select count(*) from debt_payments), 0);
 
+-- ── invites ──
+select t.as_server();
+insert into household_invites (household_id, token_hash, role, created_by)
+  values ('11111111-1111-1111-1111-111111111111', encode(sha256(convert_to('good-token', 'UTF8')), 'hex'), 'viewer', 'a0000000-0000-0000-0000-000000000001'),
+         ('11111111-1111-1111-1111-111111111111', encode(sha256(convert_to('old-token', 'UTF8')), 'hex'), 'member', 'a0000000-0000-0000-0000-000000000001');
+update household_invites set expires_at = now() - interval '1 day' where token_hash = encode(sha256(convert_to('old-token', 'UTF8')), 'hex');
+
+select t.as_user('c0000000-0000-0000-0000-000000000003');
+select t.eq('non-admin cannot read invites', (select count(*) from household_invites), 0);
+select t.fails('non-admin cannot create invites',
+  $$insert into household_invites (household_id, token_hash, created_by) values ('11111111-1111-1111-1111-111111111111','x','c0000000-0000-0000-0000-000000000003')$$,
+  'row-level security');
+select t.fails('wrong token rejected', $$select accept_household_invite('nope')$$, 'invalid_or_expired_invite');
+select t.fails('expired token rejected', $$select accept_household_invite('old-token')$$, 'invalid_or_expired_invite');
+select t.eq('valid token joins the household',
+  (select count(*) from (select accept_household_invite('good-token')) x), 1);
+select t.eq('invitee is now a viewer who can read',
+  (select count(*) from transactions where household_id = '11111111-1111-1111-1111-111111111111'), 4);
+select t.fails('viewer role from invite cannot write',
+  $$insert into transactions (household_id, created_by, type, amount, currency, account_id, occurred_on)
+    values ('11111111-1111-1111-1111-111111111111','c0000000-0000-0000-0000-000000000003','expense',1,'RUB','a1000000-0000-0000-0000-000000000001','2026-01-11')$$,
+  'row-level security');
+select t.fails('token cannot be reused', $$select accept_household_invite('good-token')$$, 'invalid_or_expired_invite');
+select t.as_user('a0000000-0000-0000-0000-000000000001');
+select t.eq('admin can read invites of own household', (select count(*) from household_invites), 2);
+
 rollback;

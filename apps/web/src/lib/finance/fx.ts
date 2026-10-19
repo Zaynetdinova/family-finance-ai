@@ -98,3 +98,29 @@ export function snapshotFx(
     baseAmount: convertMinor(amount, picked.rate),
   };
 }
+
+export interface CurrencyAmount {
+  currency: Currency;
+  amount: Minor;
+}
+
+/**
+ * Sum amounts of different currencies in `target` using the rates on `on`.
+ * Amounts without a usable rate are returned separately instead of being guessed.
+ */
+export function sumInCurrency(
+  items: CurrencyAmount[],
+  target: Currency,
+  rows: RateRow[],
+  on: IsoDate,
+  maxAgeDays = DEFAULT_MAX_RATE_AGE_DAYS,
+): { total: Minor; unconverted: CurrencyAmount[] } {
+  let total = 0n;
+  const unconverted: CurrencyAmount[] = [];
+  for (const it of items) {
+    const picked = pickRate(rows, it.currency, target, on, maxAgeDays);
+    if (!picked) unconverted.push(it);
+    else total += convertMinor(it.amount, picked.rate);
+  }
+  return { total, unconverted };
+}

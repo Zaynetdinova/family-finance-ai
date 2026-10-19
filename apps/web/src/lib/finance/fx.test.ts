@@ -42,3 +42,18 @@ describe('fx', () => {
     expect(snapshotFx(rub('5'), 'RUB', 'RUB', [], '2026-10-18')).toMatchObject({ baseAmount: rub('5') });
   });
 });
+
+import { sumInCurrency } from './fx';
+
+describe('sumInCurrency', () => {
+  it('converts what it can and reports the rest', () => {
+    const r = sumInCurrency(
+      [{ currency: 'RUB', amount: rub('1000') }, { currency: 'USD', amount: rub('10') }],
+      'RUB', rates, '2026-10-16',
+    );
+    expect(r.total).toBe(rub('1900'));
+    expect(r.unconverted).toEqual([]);
+    const none = sumInCurrency([{ currency: 'USD', amount: rub('10') }], 'RUB', [], '2026-10-16');
+    expect(none).toEqual({ total: 0n, unconverted: [{ currency: 'USD', amount: rub('10') }] });
+  });
+});

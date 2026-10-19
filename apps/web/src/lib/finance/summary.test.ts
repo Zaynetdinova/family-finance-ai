@@ -149,6 +149,10 @@ describe('comparePeriods', () => {
     expect(comparePeriods(cur, sSept)).toEqual({ comparable: false, reason: 'different_length' });
   });
 
+  it('a week in progress is compared with the same elapsed days of the previous week', () => {
+    expect(previousComparableRange({ from: '2026-10-12', to: '2026-10-18' }, '2026-10-14')).toEqual({ from: '2026-10-05', to: '2026-10-07', truncated: false });
+  });
+
   it('previous range for non-month periods is the preceding range of equal length', () => {
     expect(previousComparableRange({ from: '2026-10-12', to: '2026-10-18' }, '2026-10-18')).toMatchObject({ from: '2026-10-05', to: '2026-10-11' });
   });
