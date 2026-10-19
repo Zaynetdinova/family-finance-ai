@@ -203,4 +203,21 @@ select t.fails('token cannot be reused', $$select accept_household_invite('good-
 select t.as_user('a0000000-0000-0000-0000-000000000001');
 select t.eq('admin can read invites of own household', (select count(*) from household_invites), 2);
 
+-- ── default accounts ──
+select t.as_user('b0000000-0000-0000-0000-000000000002');
+insert into default_accounts (user_id, household_id, currency, account_id)
+  values ('b0000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','RUB','a1000000-0000-0000-0000-000000000002');
+select t.eq('member can set own default account', (select count(*) from default_accounts), 1);
+select t.fails('default account currency must match',
+  $$insert into default_accounts values ('b0000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','USD','a1000000-0000-0000-0000-000000000001')$$,
+  'currency mismatch');
+select t.fails('cannot set a default for another user',
+  $$insert into default_accounts values ('a0000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','RUB','a1000000-0000-0000-0000-000000000001')$$,
+  'row-level security');
+select t.fails('cannot point at another household''s account',
+  $$insert into default_accounts values ('b0000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','USD','a2000000-0000-0000-0000-000000000001')$$,
+  '');
+select t.as_user('a0000000-0000-0000-0000-000000000001');
+select t.eq('others'' defaults are not visible', (select count(*) from default_accounts), 0);
+
 rollback;

@@ -18,7 +18,7 @@
 | 1. Аудит и архитектура | готов (репозиторий был пуст) |
 | 2. Финансовое ядро | готов: схема БД, RLS, расчёты, тесты |
 | 3. Веб-приложение | готово к проверке на реальном Supabase: Next.js, вход, обзор, операции, аналитика, долги, бюджеты и цели, настройки |
-| 4. AI и Telegram | не начат (готовы схема ответа модели и нормализация) |
+| 4. AI и Telegram | реализован, проверен тестами с подставными Telegram/OpenAI; живая проверка — по `docs/TELEGRAM.md` |
 | 5. Долги и прогнозы | не начат (поля и триггеры в БД есть, стратегии погашения не реализованы) |
 | 6. n8n и документация | не начат |
 
@@ -38,8 +38,8 @@ PSQL_ARGS="-h localhost -U postgres" supabase/local-tests/run.sh
 
 ## Миграции на Supabase
 
-Применить по порядку файлы из `supabase/migrations` (SQL Editor или `supabase db push`): `0001_schema.sql` … `0005_household_invites.sql`.
+Применить по порядку файлы из `supabase/migrations` (SQL Editor или `supabase db push`): `0001_schema.sql` … `0006_default_accounts.sql`.
 
 Привилегированные операции (запись курсов, журнал AI, Telegram-привязка, идемпотентность webhook) выполняются только ключом `service_role` на сервере.
 
-Подключение Supabase: `docs/SUPABASE_SETUP.md`. Запуск веб-приложения: `docs/WEB.md`. Правила учёта: `docs/ACCOUNTING.md`. План: `docs/PLAN.md`.
+Подключение Supabase: `docs/SUPABASE_SETUP.md`. Запуск веб-приложения: `docs/WEB.md`. Telegram-бот и AI: `docs/TELEGRAM.md`. Правила учёта: `docs/ACCOUNTING.md`. План: `docs/PLAN.md`.

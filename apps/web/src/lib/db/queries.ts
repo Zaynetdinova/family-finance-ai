@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { todayIn } from '@/lib/finance/period';
 import { addDays } from '@/lib/finance/dates';
@@ -9,7 +10,8 @@ import type {
   AccountRow, CategoryRow, DebtRow, ExchangeRateRow, HouseholdRow, MemberRow, ProfileRow, TransactionRow,
 } from './types';
 
-type Supabase = Awaited<ReturnType<typeof createClient>>;
+// Both the user's RLS client and the service client share this interface.
+type Supabase = Awaited<ReturnType<typeof createClient>> | SupabaseClient;
 
 export interface AppContext {
   supabase: Supabase;
@@ -49,15 +51,15 @@ function must<T>(r: { data: T | null; error: { message: string } | null }, what:
 }
 
 /**
- * Everything a page needs about the signed-in user and their household, loaded once per request.
- * Redirects to /login when signed out and to /onboarding when the user has no household yet.
+ * Loads the household context for a known user with the given client. Used by web pages
+ * (RLS client of the signed-in user) and by the Telegram bot (service client, scoped
+ * explicitly to the linked user's household). Returns null when the user has no household.
  */
-export const getAppContext = cache(async (opts: { allowNoHousehold?: boolean } = {}): Promise<AppContext | null> => {
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  const user = auth.user;
-  if (!user) redirect('/login');
-
+export async function buildContext(
+  supabase: Supabase,
+  user: { id: string; email: string | null },
+  preferredHouseholdId?: string | null,
+): Promise<AppContext | null> {
   let profile = (await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()).data as ProfileRow | null;
   if (!profile) {
     const ins = await supabase.from('profiles').insert({ id: user.id }).select('*').single();
@@ -69,13 +71,9 @@ export const getAppContext = cache(async (opts: { allowNoHousehold?: boolean } =
     'memberships',
   ) as { household_id: string; role: MemberRow['role'] }[];
 
-  // Active household: the one chosen via cookie if the user is still a member, else the oldest membership.
-  const wanted = (await cookies()).get(ACTIVE_HOUSEHOLD_COOKIE)?.value;
-  const first = memberships.find((m) => m.household_id === wanted) ?? memberships[0];
-  if (!first) {
-    if (opts.allowNoHousehold) return null;
-    redirect('/onboarding');
-  }
+  // Active household: the preferred one if the user is still a member, else the oldest membership.
+  const first = memberships.find((m) => m.household_id === preferredHouseholdId) ?? memberships[0];
+  if (!first) return null;
 
   const hid = first.household_id;
   const [household, members, accounts, categories, debts, allHouseholds] = await Promise.all([
@@ -90,7 +88,7 @@ export const getAppContext = cache(async (opts: { allowNoHousehold?: boolean } =
   return {
     supabase,
     userId: user.id,
-    email: user.email ?? null,
+    email: user.email,
     profile,
     household: must(household, 'household') as HouseholdRow,
     role: first.role,
@@ -105,6 +103,24 @@ export const getAppContext = cache(async (opts: { allowNoHousehold?: boolean } =
     debts: must(debts, 'debts') as DebtRow[],
     today: todayIn(profile.timezone),
   };
+}
+
+/**
+ * Everything a page needs about the signed-in user and their household, loaded once per request.
+ * Redirects to /login when signed out and to /onboarding when the user has no household yet.
+ */
+export const getAppContext = cache(async (opts: { allowNoHousehold?: boolean } = {}): Promise<AppContext | null> => {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth.user;
+  if (!user) redirect('/login');
+  const wanted = (await cookies()).get(ACTIVE_HOUSEHOLD_COOKIE)?.value;
+  const ctx = await buildContext(supabase, { id: user.id, email: user.email ?? null }, wanted);
+  if (!ctx) {
+    if (opts.allowNoHousehold) return null;
+    redirect('/onboarding');
+  }
+  return ctx;
 });
 
 /** Like getAppContext but guarantees a household (the common case). */

@@ -26,6 +26,8 @@ export interface NormalizeContext extends CurrencyContext {
   debts?: DebtRef[];
   rates: RateRow[];
   defaultAccountId?: string;
+  /** The user's default account per currency (used when the message names no account). */
+  defaultAccounts?: Partial<Record<Currency, string>>;
   /** lower-cased counterparty → category the user previously chose for it */
   merchantHistory?: Record<string, string>;
   confidenceThreshold?: number;
@@ -169,7 +171,8 @@ export function normalizeExtraction(ex: Extraction, ctx: NormalizeContext): Norm
   // Pick the account for non-transfer types once currency is known
   if (!account && currency && !accountAmbiguous) {
     const sameCcy = live.filter((a) => a.currency === currency);
-    const def = ctx.defaultAccountId ? sameCcy.find((a) => a.id === ctx.defaultAccountId) : undefined;
+    const wanted = ctx.defaultAccounts?.[currency] ?? ctx.defaultAccountId;
+    const def = wanted ? sameCcy.find((a) => a.id === wanted) : undefined;
     if (def) account = def;
     else if (sameCcy.length === 1) account = sameCcy[0];
   }

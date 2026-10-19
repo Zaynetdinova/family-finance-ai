@@ -8,7 +8,7 @@
 npm i -g supabase            # или: npx supabase <команда>
 supabase login               # откроет браузер
 supabase link --project-ref ateuomwqiswhpqpadjza   # спросит пароль БД
-supabase db push             # применит supabase/migrations/0001…0005
+supabase db push             # применит supabase/migrations/0001…0006
 ```
 
 Пароль БД (Project Settings → Database) вводится только в терминале. Не вставляйте его в чат, в коммиты и в `.env.example`.
@@ -16,7 +16,7 @@ supabase db push             # применит supabase/migrations/0001…0005
 
 Файлы из `supabase/local-tests/` на Supabase **не применяются**: это заглушка и тесты для локального PostgreSQL.
 
-После добавления новых миграций повторите `supabase db push` (миграция `0005_household_invites.sql` нужна для приглашений в семейный бюджет).
+После добавления новых миграций повторите `supabase db push` (`0005` — приглашения в семейный бюджет, `0006` — счета по умолчанию для Telegram).
 
 ## 2. Ключи
 

@@ -55,6 +55,11 @@ describe('normalizeExtraction', () => {
     expect(normalizeExtraction(extraction({ intent: 'question' }), ctx)).toEqual({ status: 'not_a_transaction' });
   });
 
+  it('uses the per-currency default account', () => {
+    const r = normalizeExtraction(extraction({ amount: '100', currency_raw: 'рублей', category_hint: 'продукты' }), { ...ctx, defaultAccountId: undefined, defaultAccounts: { RUB: 'acc-save' } });
+    expect(r.status === 'ready' && r.draft.accountId).toBe('acc-save');
+  });
+
   it('asks which account when the currency has several and no default matches', () => {
     const r = normalizeExtraction(extraction({ amount: '100', currency_raw: 'рублей' }), { ...ctx, defaultAccountId: undefined });
     expect(r.status).toBe('needs_clarification');

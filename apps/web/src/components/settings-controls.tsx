@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/dialog';
 import { Select } from '@/components/ui/input';
 import { ActionForm, FormField } from '@/components/action-form';
-import { archiveAccount, createInvite, refreshRatesNow, removeMember, switchHousehold } from '@/lib/actions/settings';
+import { archiveAccount, createInvite, refreshRatesNow, removeMember, setDefaultAccount, switchHousehold } from '@/lib/actions/settings';
 import type { ActionResult } from '@/lib/actions/result';
 
 function useRun() {
@@ -87,5 +87,18 @@ export function InviteForm() {
       ) : null}
       <p className="text-xs text-text-muted">Ссылка показывается один раз, действует 7 дней и срабатывает однократно. Передайте её только тому, кого приглашаете.</p>
     </div>
+  );
+}
+
+export function DefaultAccountSelect({ currency, value, accounts }: { currency: string; value: string; accounts: { id: string; name: string }[] }) {
+  const { busy, run } = useRun();
+  return (
+    <label className="flex flex-col gap-1 text-xs text-text-secondary">
+      Счёт по умолчанию, {currency}
+      <Select defaultValue={value} disabled={busy} onChange={(e) => run(() => setDefaultAccount(currency, e.target.value))} className="w-auto">
+        <option value="">— спрашивать —</option>
+        {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+      </Select>
+    </label>
   );
 }

@@ -1,5 +1,5 @@
 import type { Currency } from '@/lib/finance/money';
-import type { TransactionStatus, TransactionType } from '@/lib/finance/types';
+import type { TransactionStatus } from '@/lib/finance/types';
 
 export const CURRENCY_NAMES: Record<Currency, string> = {
   RUB: 'RUB — российский рубль',
@@ -16,9 +16,7 @@ export const ACCOUNT_TYPE_LABELS: Record<string, string> = {
 };
 export const ACCOUNT_TYPES = Object.entries(ACCOUNT_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>);
 
-export const TYPE_LABELS: Record<TransactionType, string> = {
-  income: 'Доход', expense: 'Расход', transfer: 'Перевод', debt_payment: 'Платёж по долгу', refund: 'Возврат',
-};
+export { TYPE_LABELS } from './labels-plain';
 export const STATUS_LABELS: Record<TransactionStatus, string> = {
   draft: 'Черновик', pending_confirmation: 'Ожидает подтверждения', confirmed: 'Подтверждена', cancelled: 'Отменена',
 };

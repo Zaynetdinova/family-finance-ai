@@ -167,3 +167,22 @@ export async function refreshRatesNow(): Promise<ActionResult> {
   revalidatePath('/', 'layout');
   return { ok: true, message: `Курсы обновлены на ${r.date}` };
 }
+
+/** Default account per currency for messages that name no account (Telegram). Empty value clears it. */
+export async function setDefaultAccount(currency: string, accountId: string): Promise<ActionResult> {
+  const ctx = await requireContext();
+  if (!(CURRENCIES as readonly string[]).includes(currency)) return { ok: false, error: 'Неизвестная валюта.' };
+  if (!accountId) {
+    const { error } = await ctx.supabase.from('default_accounts').delete().eq('user_id', ctx.userId).eq('household_id', ctx.household.id).eq('currency', currency);
+    if (error) return { ok: false, error: dbError(error.message) };
+  } else {
+    const acc = ctx.accounts.find((a) => a.id === accountId && a.currency === currency && !a.is_archived);
+    if (!acc) return { ok: false, error: 'Счёт не найден или в другой валюте.' };
+    const { error } = await ctx.supabase
+      .from('default_accounts')
+      .upsert({ user_id: ctx.userId, household_id: ctx.household.id, currency, account_id: accountId }, { onConflict: 'user_id,household_id,currency' });
+    if (error) return { ok: false, error: dbError(error.message) };
+  }
+  revalidatePath('/settings');
+  return { ok: true, message: 'Счёт по умолчанию сохранён' };
+}

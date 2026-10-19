@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Select } from '@/components/ui/input';
 import { Notice } from '@/components/ui/states';
 import { ActionForm, FormField } from '@/components/action-form';
-import { ArchiveButton, HouseholdSwitcher, InviteForm, RefreshRatesButton, RemoveMemberButton } from '@/components/settings-controls';
+import { TelegramLink } from '@/components/telegram-link';
+import { ArchiveButton, DefaultAccountSelect, HouseholdSwitcher, InviteForm, RefreshRatesButton, RemoveMemberButton } from '@/components/settings-controls';
 import { addManualRate, createAccount, createCategory, updateHouseholdSettings } from '@/lib/actions/settings';
 import { loadRecentRates, requireContext } from '@/lib/db/queries';
 import { categoryNamer } from '@/lib/report';
@@ -21,6 +22,10 @@ export default async function SettingsPage() {
   const custom = ctx.categories.filter((c) => !c.is_system);
   const parents = ctx.categories.filter((c) => !c.parent_id);
   const adminKeyMissing = !process.env.SUPABASE_SECRET_KEY;
+  const defaultsRes = await ctx.supabase.from('default_accounts').select('currency, account_id').eq('user_id', ctx.userId).eq('household_id', ctx.household.id);
+  const defaults = new Map(((defaultsRes.data ?? []) as { currency: string; account_id: string }[]).map((d) => [d.currency, d.account_id]));
+  const liveAccounts = ctx.accounts.filter((a) => !a.is_archived);
+  const accountCurrencies = [...new Set(liveAccounts.map((a) => a.currency))];
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
@@ -42,6 +47,23 @@ export default async function SettingsPage() {
               </div>
             </ActionForm>
           ) : <p className="text-sm">{ctx.household.name} · валюта отчётов {ctx.household.base_currency}</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Telegram</CardTitle></CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <TelegramLink linked={ctx.profile.telegram_user_id !== null} />
+          {accountCurrencies.length ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap gap-3">
+                {accountCurrencies.map((c) => (
+                  <DefaultAccountSelect key={c} currency={c} value={defaults.get(c) ?? ''} accounts={liveAccounts.filter((a) => a.currency === c).map((a) => ({ id: a.id, name: a.name }))} />
+                ))}
+              </div>
+              <p className="text-xs text-text-muted">Если в сообщении счёт не назван, бот запишет операцию на счёт по умолчанию этой валюты. Без него бот спросит, если счетов в валюте несколько.</p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
